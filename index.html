@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Digital Signage CSV Viewer</title>
+		    <style>
+		:root { 
+			--bg: #ffffff00;
+			/*--bg-image: url('bg.jpg');*/
+			--fg: #ffffff; 
+            --headerfg: #ffffff;
+			--muted: rgb(236, 0, 217); 
+			--accent: #4da3ff; 
+			--row-alt: #00000050; 
+            --row: #0000002c; 
+			--header-bg: #00000067; 
+			--font: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+			--header-size: 1.1rem;
+			--row-size: 1.05rem;
+		}
+
+        html, body { height: 100%; }
+        html, body { margin: 0; padding: 0; }
+		body { 
+			background-color: var(--bg);
+		    background-image: var(--bg-image); 
+            background-position: absolute;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: var(--fg);
+			font-family: var(--font);
+            line-height: 1.4;
+            overflow: hidden; /* we manage scrolling in the content container */
+        }
+
+		.app {
+			display: grid;
+			grid-template-rows: 1fr;
+			height: 100%;
+			width: 100%;
+		}
+
+        .content {
+            position: relative;
+            overflow: hidden; /* visible area */
+        }
+
+        .scrollport {
+            position: absolute;
+            inset: 0;
+            overflow-y: scroll; /* the element we programmatically scroll */
+            scrollbar-width: none; /* Firefox */
+        }
+        .scrollport::-webkit-scrollbar { display: none; }
+
+		table { 
+            width: 100%; 
+            border-collapse: collapse; 
+			font-size: var(--row-size); 
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            background: var(--header-bg);
+            z-index: 2;
+			font-size: var(--header-size);
+			text-align: center;
+            color: var(--headerfg);
+            backdrop-filter: blur(10px);
+        }
+        thead tr th:nth-child(1){
+            text-wrap: nowrap;
+        }
+        thead tr th:nth-child(2){
+            text-wrap: nowrap;
+        }
+
+        thead tr th:nth-child(5){
+            font-size: 40px;
+        }
+        thead tr th:nth-child(7){
+            font-size: 40px;
+        }
+        th, td { 
+            text-align: center; 
+            padding: 0.75rem 1rem; 
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        
+        tbody tr:nth-child(odd) { background: var(--row-alt); }
+        /*tbody tr:hover { background: rgba(77, 163, 255, 0.06); }*/
+
+        tbody tr:nth-child(even) { background: var(--row); }
+
+
+
+        .loading, .error {
+            padding: 2rem; 
+            color: var(--muted);
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Optional: make text large for signage at a distance */
+		        .text-large table { font-size: 1.25rem; }
+
+			/* Column width helpers driven by CSS vars */
+			col[data-col="0"] { width: var(--col-0, auto); }
+			col[data-col="1"] { width: var(--col-1, auto); }
+			col[data-col="2"] { width: var(--col-2, auto); }
+			col[data-col="3"] { width: var(--col-3, auto); }
+			col[data-col="4"] { width: var(--col-4, auto); }
+			col[data-col="5"] { width: var(--col-5, auto); }
+			col[data-col="6"] { width: var(--col-6, auto); }
+			col[data-col="7"] { width: var(--col-7, auto); }
+			col[data-col="8"] { width: var(--col-8, auto); }
+			col[data-col="9"] { width: var(--col-9, auto); }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="content">
+            <div id="scrollport" class="scrollport">
+                <div id="status" class="loading">Loading…</div>
+                <table id="table" style="display:none">
+                    <thead id="thead"></thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+			// ==========================
+			// SETTINGS (edit these)
+			// ==========================
+			const SETTINGS = {
+				// Data source
+				csv: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRrQmSEotq71FqYpE7oxahUwUt4OV_fouWiz33QKJPUECgZC_h_LT033MZ7I3_8ipYpIt3d3vlzStxS/pub?gid=0&single=true&output=csv', // e.g. 'https://docs.google.com/spreadsheets/d/.../export?format=csv&gid=0'
+
+				// Auto-refresh (seconds). Set 0 to disable
+				refresh: 300,
+
+				// Scrolling
+				speed: 40,      // px per second
+				resetDelay: 3000, // ms pause at bottom before looping to top
+				topDelay: 1500,   // ms pause at top before restarting scroll
+				startDelay: 0,  // ms delay before starting auto-scroll
+
+				// Theme and typography
+				theme: {
+			//		bg: '#0b0f1a',
+			//		fg: '#e8eefc',
+			//		headerBg: '#0d1322',
+			//		muted: '#93a1b3',
+			//		rowAlt: '#0f1524',
+			//		font: 'system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
+					headerSize: '60px',
+					rowSize: '40px'
+				},
+
+				// Column widths (optional): set per column (max 10)
+				// Accepts CSS lengths like '220px', '20%', 'auto'. Leave null for auto.
+				columnWidth0: "300px",
+				columnWidth1: "280px",
+				columnWidth2: null,
+				columnWidth3: "360px",
+				columnWidth4: null,
+				columnWidth5: "360px",
+				columnWidth6: null,
+				columnWidth7: null,
+				columnWidth8: null,
+				columnWidth9: null,
+
+				// Increase overall table sizing for distance viewing
+				large: false
+			};
+
+			// Replaced URL parameter parsing with SETTINGS-only configuration
+
+			// Removed meta header update; full-screen table only
+
+			function applyTheme(theme) {
+				const root = document.documentElement;
+				if (!theme) return;
+				if (theme.bg) root.style.setProperty('--bg', theme.bg);
+				if (theme.fg) root.style.setProperty('--fg', theme.fg);
+				if (theme.headerBg) root.style.setProperty('--header-bg', theme.headerBg);
+				if (theme.muted) root.style.setProperty('--muted', theme.muted);
+				if (theme.rowAlt) root.style.setProperty('--row-alt', theme.rowAlt);
+				if (theme.font) root.style.setProperty('--font', theme.font);
+				if (theme.headerSize) root.style.setProperty('--header-size', theme.headerSize);
+				if (theme.rowSize) root.style.setProperty('--row-size', theme.rowSize);
+			}
+
+            async function fetchCsv(url) {
+                console.log('Fetching CSV from:', url);
+                try {
+                    const res = await fetch(url, { 
+                        cache: 'no-store',
+                        mode: 'cors'
+                    });
+                    console.log('Response status:', res.status);
+                    console.log('Response headers:', res.headers);
+                    
+                    if (!res.ok) {
+                        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                    }
+                    
+                    const text = await res.text();
+                    console.log('CSV content preview:', text.substring(0, 200) + '...');
+                    return text;
+                } catch (err) {
+                    console.error('Fetch error:', err);
+                    throw new Error('Failed to fetch CSV: ' + err.message);
+                }
+            }
+
+            function parseCsv(text) {
+                // Basic CSV parsing that handles quoted values and commas
+                const rows = [];
+                let i = 0, field = '', row = [], inQuotes = false;
+                while (i < text.length) {
+                    const char = text[i];
+                    if (inQuotes) {
+                        if (char === '"') {
+                            if (text[i + 1] === '"') { field += '"'; i++; }
+                            else { inQuotes = false; }
+                        } else { field += char; }
+                    } else {
+                        if (char === '"') inQuotes = true;
+                        else if (char === ',') { row.push(field); field = ''; }
+                        else if (char === '\n' || char === '\r') {
+                            if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+                            field = ''; row = [];
+                            // Handle CRLF by skipping the next char if needed
+                            if (char === '\r' && text[i + 1] === '\n') i++;
+                        } else { field += char; }
+                    }
+                    i++;
+                }
+                if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+                return rows.filter(r => r.length > 0);
+            }
+
+			function renderTable(rows) {
+                const thead = document.getElementById('thead');
+                const tbody = document.getElementById('tbody');
+                const table = document.getElementById('table');
+                thead.innerHTML = '';
+                tbody.innerHTML = '';
+                if (!rows || rows.length === 0) return;
+
+				// Ensure colgroup exists for column width control
+				let colgroup = table.querySelector('colgroup');
+				if (!colgroup) {
+					colgroup = document.createElement('colgroup');
+					table.prepend(colgroup);
+				}
+				colgroup.innerHTML = '';
+
+                const header = rows[0];
+                const headTr = document.createElement('tr');
+                header.forEach(h => {
+					const th = document.createElement('th');
+                    th.textContent = h;
+                    headTr.appendChild(th);
+                });
+                thead.appendChild(headTr);
+
+				// Create matching cols in colgroup
+				for (let c = 0; c < header.length; c++) {
+					const col = document.createElement('col');
+					col.setAttribute('data-col', String(c));
+					colgroup.appendChild(col);
+				}
+
+                for (let r = 1; r < rows.length; r++) {
+                    const tr = document.createElement('tr');
+                    rows[r].forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell;
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                }
+                table.style.display = '';
+            }
+
+			function startAutoScrollLoop(speedPxPerSec, resetDelayMs, topDelayMs) {
+                const scroller = document.getElementById('scrollport');
+                let rafId = 0;
+                let lastTs = 0;
+				let pauseAtEndsMs = typeof resetDelayMs === 'number' ? resetDelayMs : 2000;
+				let pauseAtTopMs = typeof topDelayMs === 'number' ? topDelayMs : 1000;
+                let isPaused = false;
+                let pauseStartTime = 0;
+                let pauseType = ''; // 'bottom' or 'top'
+
+                function step(ts) {
+                    if (!lastTs) lastTs = ts;
+                    const dt = Math.min(100, ts - lastTs); // cap to avoid jumps when tab hidden
+                    lastTs = ts;
+
+                    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+                    const atBottom = Math.ceil(scroller.scrollTop) >= maxScroll;
+                    const atTop = scroller.scrollTop <= 0;
+
+                    if (atBottom && !isPaused) {
+                        // Start pause at bottom
+                        isPaused = true;
+                        pauseType = 'bottom';
+                        pauseStartTime = ts;
+                        console.log('Started pause at bottom, duration:', pauseAtEndsMs);
+                    } else if (atTop && !isPaused && pauseType === 'bottom') {
+                        // Start pause at top (only after coming from bottom)
+                        isPaused = true;
+                        pauseType = 'top';
+                        pauseStartTime = ts;
+                        console.log('Started pause at top, duration:', pauseAtTopMs);
+                    } else if (isPaused) {
+                        // Check if pause duration has elapsed
+                        const elapsed = ts - pauseStartTime;
+                        const requiredDelay = pauseType === 'bottom' ? pauseAtEndsMs : pauseAtTopMs;
+                        
+                        if (elapsed >= requiredDelay) {
+                            if (pauseType === 'bottom') {
+                                // Reset to top and start top pause
+                                console.log('Bottom pause complete, resetting to top');
+                                scroller.scrollTop = 0;
+                                pauseType = 'top';
+                                pauseStartTime = ts;
+                            } else {
+                                // Top pause complete, resume scrolling
+                                console.log('Top pause complete, resuming scroll');
+                                isPaused = false;
+                                pauseType = '';
+                                lastTs = ts; // Reset timing for smooth continuation
+                            }
+                        }
+                    } else {
+                        // Normal scrolling
+                        const dy = (speedPxPerSec * dt) / 1000;
+                        scroller.scrollTop = Math.min(maxScroll, scroller.scrollTop + dy);
+                    }
+
+                    rafId = requestAnimationFrame(step);
+                }
+
+                // Restart on resize to keep maxScroll accurate
+                const onResize = () => { /* no-op; maxScroll computed each frame */ };
+                window.addEventListener('resize', onResize);
+
+                // Pause when not visible for performance
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        cancelAnimationFrame(rafId);
+                    } else {
+                        // Reset timing when becoming visible again
+                        lastTs = 0;
+                        if (isPaused) {
+                            // If we were paused, reset the pause timing too
+                            pauseStartTime = performance.now();
+                        }
+                        rafId = requestAnimationFrame(step);
+                    }
+                });
+
+                rafId = requestAnimationFrame(step);
+
+                return () => {
+                    cancelAnimationFrame(rafId);
+                    window.removeEventListener('resize', onResize);
+                };
+            }
+
+			async function main() {
+				const cfg = SETTINGS;
+				if (cfg.large) document.body.classList.add('text-large');
+				applyTheme(cfg.theme);
+
+                const status = document.getElementById('status');
+                try {
+					if (!cfg.csv) throw new Error('Set SETTINGS.csv to a Google Sheets CSV publish URL');
+                    status.textContent = 'Loading CSV…';
+                    
+                    // Try to fetch the CSV
+                    let text;
+                    try {
+						text = await fetchCsv(cfg.csv);
+                    } catch (fetchErr) {
+                        // If CORS fails, try a proxy or show helpful message
+                        if (fetchErr.message.includes('CORS') || fetchErr.message.includes('fetch')) {
+                            throw new Error('CORS Error: Try using a CORS proxy like https://cors-anywhere.herokuapp.com/ or https://api.allorigins.win/raw?url=' + encodeURIComponent(params.csv));
+                        }
+                        throw fetchErr;
+                    }
+                    
+                    console.log('CSV text length:', text.length);
+                    const rows = parseCsv(text);
+                    console.log('Parsed rows:', rows.length);
+                    if (!rows || rows.length === 0) throw new Error('CSV is empty');
+                    renderTable(rows);
+                    status.remove();
+
+
+					// Apply column widths if provided (up to 10)
+					{
+						const root = document.documentElement;
+						for (let idx = 0; idx < 10; idx++) {
+							const key = 'columnWidth' + idx;
+							const w = cfg[key];
+							if (w) root.style.setProperty('--col-' + idx, w);
+						}
+					}
+
+					// Wait for table to render, then apply start delay before starting scroll
+					setTimeout(() => {
+						startAutoScrollLoop(Math.max(5, cfg.speed || 40), cfg.resetDelay, cfg.topDelay);
+					}, 100 + (cfg.startDelay || 0));
+
+                    // Optional: auto-refresh to pick up sheet changes
+					if (cfg.refresh && cfg.refresh > 0) {
+                        setInterval(() => {
+                            location.reload();
+						}, cfg.refresh * 1000);
+                    }
+                } catch (err) {
+                    console.error('Error:', err);
+                    status.className = 'error';
+                    status.innerHTML = '<strong>Error:</strong> ' + (err && err.message ? err.message : 'Failed to load') + 
+                        '<br><br><strong>Try:</strong><br>' +
+                        '1. Make sure your Google Sheet is published as CSV<br>' +
+                        '2. Use a CORS proxy: <code>?csv=https://api.allorigins.win/raw?url=' + encodeURIComponent(params.csv || 'YOUR_CSV_URL') + '</code><br>' +
+                        '3. Check browser console for details';
+                }
+            }
+
+            main();
+        })();
+    </script>
+</body>
+</html>
+
+
