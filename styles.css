@@ -1,0 +1,172 @@
+/* ============================================
+   STYLE AND SETTINGS VARIABLES
+   ============================================ */
+
+:root {
+    /* Scroll Settings */
+    --scrollSpeedSeconds: 10; /* numeric seconds for JS scrolling */
+    --scrollDelaySeconds: 2; /* numeric seconds for pauses */
+
+    /* Row Colors */
+    --rowCol: #0000007a; /* Primary row color */
+    --rowAlt: #0000002d; /* Alternating row color */
+    --headerBGCol: #00000041; /* Header background color (separate from row colors) */
+    
+    /* Table Header Styles */
+    --tableHeaderFont: Arial, sans-serif;
+    --tableHeaderSize: 3.1em;
+    
+    /* Table Content Styles */
+    --tableContentFont: Arial, sans-serif;
+    --tableContentSize: 2.7em;
+    
+    /* Column Widths (0-11 for 12 columns max) */
+    --column0Width: 300px;
+    --column1Width: 280px;
+    --column2Width: 150px;
+    --column3Width: 360px;
+    --column4Width: 150px;
+    --column5Width: 360px;
+    --column6Width: 150px;
+    --column7Width: 150px;
+    --column8Width: 150px;
+    --column9Width: 150px;
+    --column10Width: 150px;
+    --column11Width: 150px;
+    
+    /* Text Alignment (left, center, right) */
+    --column0Align: center;
+    --column1Align: center;
+    --column2Align: center;
+    --column3Align: center;
+    --column4Align: center;
+    --column5Align: center;
+    --column6Align: center;
+    --column7Align: center;
+    --column8Align: center;
+    --column9Align: center;
+    --column10Align: center;
+    --column11Align: center;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: var(--tableContentFont);
+}
+
+.tableContainer {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    box-sizing: border-box;
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    display: table;
+}
+
+thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: table-header-group;
+}
+
+thead tr {
+    backdrop-filter: blur(20px);
+    background-color: var(--headerBGCol) !important;
+}
+
+tbody {
+    display: table-row-group;
+    position: relative;
+    transform-style: preserve-3d;
+}
+
+tr {
+    display: table-row;
+}
+
+th, td {
+    padding: 12px 8px;
+    text-align: left;
+    display: table-cell;
+    vertical-align: middle;
+}
+
+th {
+    font-family: var(--tableHeaderFont);
+    font-size: var(--tableHeaderSize);
+    color: var(--tableHeaderColor);
+    font-weight: bold;
+    background-color: var(--headerBGCol);
+    border-bottom: 2px solid #333;
+}
+
+td {
+    font-family: var(--tableContentFont);
+    font-size: var(--tableContentSize);
+    color: var(--tableContentColor);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+tbody tr:nth-child(odd) {
+    background-color: var(--rowCol);
+}
+
+tbody tr:nth-child(even) {
+    background-color: var(--rowAlt);
+}
+
+/* Column Width Styles */
+.column0 { width: var(--column0Width); }
+.column1 { width: var(--column1Width); }
+.column2 { width: var(--column2Width); }
+.column3 { width: var(--column3Width); }
+.column4 { width: var(--column4Width); }
+.column5 { width: var(--column5Width); }
+.column6 { width: var(--column6Width); }
+.column7 { width: var(--column7Width); }
+.column8 { width: var(--column8Width); }
+.column9 { width: var(--column9Width); }
+.column10 { width: var(--column10Width); }
+.column11 { width: var(--column11Width); }
+
+/* Column Alignment Styles */
+.align0 { text-align: var(--column0Align); }
+.align1 { text-align: var(--column1Align); }
+.align2 { text-align: var(--column2Align); }
+.align3 { text-align: var(--column3Align); }
+.align4 { text-align: var(--column4Align); }
+.align5 { text-align: var(--column5Align); }
+.align6 { text-align: var(--column6Align); }
+.align7 { text-align: var(--column7Align); }
+.align8 { text-align: var(--column8Align); }
+.align9 { text-align: var(--column9Align); }
+.align10 { text-align: var(--column10Align); }
+.align11 { text-align: var(--column11Align); }
+
+/* ============================================
+   AUTO-SCROLL ANIMATION
+   ============================================ */
+
+.scrollableBody {
+    will-change: transform;
+}
+
