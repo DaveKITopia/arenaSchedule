@@ -19,7 +19,7 @@ let currentProxyIndex = 0;
 const reloadInterval = 180000; // 300 seconds in milliseconds
 
 // Scroll Settings
-const scrollSpeed = 18; // seconds for full scroll animation
+const scrollSpeed = 24; // seconds for full scroll animation
 const scrollDelay = 2; // seconds to wait before restarting scroll
 
 // Row Colors
