@@ -16,10 +16,10 @@ const corsProxies = [
 let currentProxyIndex = 0;
 
 // Reload Settings
-const reloadInterval = 120000; // 300 seconds in milliseconds
+const reloadInterval = 180000; // 300 seconds in milliseconds
 
 // Scroll Settings
-const scrollSpeed = 10; // seconds for full scroll animation
+const scrollSpeed = 18; // seconds for full scroll animation
 const scrollDelay = 2; // seconds to wait before restarting scroll
 
 // Row Colors
@@ -83,16 +83,16 @@ let scrollTimeout = null;
 function parseCSV(csvText) {
     const lines = csvText.split('\n').filter(line => line.trim() !== '');
     const rows = [];
-
+    
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const values = [];
         let currentValue = '';
         let insideQuotes = false;
-
+        
         for (let j = 0; j < line.length; j++) {
             const char = line[j];
-
+            
             if (char === '"') {
                 insideQuotes = !insideQuotes;
             } else if (char === ',' && !insideQuotes) {
@@ -105,7 +105,7 @@ function parseCSV(csvText) {
         values.push(currentValue.trim());
         rows.push(values);
     }
-
+    
     return rows;
 }
 
@@ -115,17 +115,17 @@ function parseCSV(csvText) {
 
 function renderTable(data) {
     if (data.length === 0) return;
-
+    
     const headerRow = data[0];
     const bodyRows = data.slice(1);
-
+    
     const tableHeader = document.getElementById('tableHeader');
     const tableBody = document.getElementById('tableBody');
-
+    
     // Clear existing content
     tableHeader.innerHTML = '';
     tableBody.innerHTML = '';
-
+    
     // Create header row
     const headerTr = document.createElement('tr');
     headerRow.forEach((cell, index) => {
@@ -141,7 +141,7 @@ function renderTable(data) {
         headerTr.appendChild(th);
     });
     tableHeader.appendChild(headerTr);
-
+    
     // Create body rows
     bodyRows.forEach((row, rowIndex) => {
         const tr = document.createElement('tr');
@@ -159,7 +159,7 @@ function renderTable(data) {
         });
         tableBody.appendChild(tr);
     });
-
+    
     // Start scrolling after rendering
     setTimeout(() => {
         startScrollAnimation();
@@ -173,9 +173,9 @@ function renderTable(data) {
 function startScrollAnimation() {
     const tableBody = document.getElementById('tableBody');
     const tableContainer = document.querySelector('.tableContainer');
-
+    
     if (!tableBody || tableBody.children.length === 0) return;
-
+    
     // Clear any existing timeouts
     if (scrollTimeout) {
         clearTimeout(scrollTimeout);
@@ -183,30 +183,30 @@ function startScrollAnimation() {
     if (scrollAnimation) {
         cancelAnimationFrame(scrollAnimation);
     }
-
+    
     // Calculate scroll distance
     const tableHeight = tableBody.offsetHeight;
     const containerHeight = tableContainer.offsetHeight;
     const headerHeight = document.getElementById('tableHeader').offsetHeight;
     const scrollableHeight = containerHeight - headerHeight;
-
+    
     if (tableHeight <= scrollableHeight) {
         // Table fits in container, no scrolling needed
         return;
     }
-
+    
     const scrollDistance = tableHeight - scrollableHeight;
     const startTime = Date.now();
     const duration = scrollSpeed * 1000; // Convert to milliseconds
-
+    
     // Reset position
     tableBody.style.transform = 'translateY(0)';
     tableBody.classList.add('scrollableBody');
-
+    
     function animate() {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
-
+        
         if (progress < 1) {
             // Still scrolling
             const currentY = -scrollDistance * progress;
@@ -216,15 +216,15 @@ function startScrollAnimation() {
         } else {
             // Reached bottom
             tableBody.style.transform = `translateY(-${scrollDistance}px)`;
-
+            
             // Wait for scrollDelay, then jump to top
             scrollTimeout = setTimeout(() => {
                 tableBody.style.transition = 'none';
                 tableBody.style.transform = 'translateY(0)';
-
+                
                 // Force reflow
                 tableBody.offsetHeight;
-
+                
                 // Wait for scrollDelay again, then restart
                 scrollTimeout = setTimeout(() => {
                     startScrollAnimation();
@@ -245,13 +245,13 @@ async function loadCSV() {
         try {
             const proxy = corsProxies[i];
             const fetchUrl = proxy + encodeURIComponent(csvUrl);
-
+            
             const response = await fetch(fetchUrl);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const csvText = await response.text();
-
+            
             // Check if we got valid CSV data (not an error page)
             if (csvText && csvText.length > 0 && !csvText.includes('<!DOCTYPE')) {
                 tableData = parseCSV(csvText);
@@ -269,7 +269,7 @@ async function loadCSV() {
             }
         }
     }
-
+    
     // All proxies failed - try direct access (might work if server allows)
     try {
         const response = await fetch(csvUrl);
@@ -317,20 +317,21 @@ document.addEventListener('DOMContentLoaded', () => {
     root.style.setProperty('--tableContentFont', tableContentFont);
     root.style.setProperty('--tableContentSize', tableContentSize);
     root.style.setProperty('--tableContentColor', tableContentColor);
-
+    
     // Apply column widths
     for (let i = 0; i < columnWidths.length; i++) {
         root.style.setProperty(`--column${i}Width`, columnWidths[i]);
     }
-
+    
     // Apply column alignments
     for (let i = 0; i < columnAlignments.length; i++) {
         root.style.setProperty(`--column${i}Align`, columnAlignments[i]);
     }
-
+    
     // Load CSV data
     loadCSV();
-
+    
     // Schedule page reload
     scheduleReload();
 });
+
