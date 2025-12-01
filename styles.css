@@ -4,7 +4,7 @@
 
 :root {
     /* Scroll Settings */
-    --scrollSpeedSeconds: 20; /* numeric seconds for JS scrolling */
+    --scrollSpeedPerRowSeconds: 2.2; /* seconds per row for scrolling */
     --scrollDelaySeconds: 2; /* numeric seconds for pauses */
 
     /* Row Colors */

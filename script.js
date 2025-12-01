@@ -196,8 +196,22 @@ function startScrollAnimation() {
     }
     
     const scrollDistance = tableHeight - scrollableHeight;
+    
+    // Calculate duration based on time per row
+    const numRows = tableBody.children.length;
+    const averageRowHeight = tableHeight / numRows;
+    const visibleRows = scrollableHeight / averageRowHeight;
+    const rowsToScroll = numRows - visibleRows;
+    
+    // Get time per row from CSS variable
+    const styles = getComputedStyle(document.documentElement);
+    const timePerRowRaw = styles.getPropertyValue('--scrollSpeedPerRowSeconds').trim();
+    const timePerRow = parseFloat(timePerRowRaw) || 20; // Default to 20 seconds if not found
+    
+    // Calculate total duration: rows to scroll * time per row
+    const duration = rowsToScroll * timePerRow * 1000; // Convert to milliseconds
+    
     const startTime = Date.now();
-    const duration = scrollSpeed * 1000; // Convert to milliseconds
     
     // Reset position
     tableBody.style.transform = 'translateY(0)';
