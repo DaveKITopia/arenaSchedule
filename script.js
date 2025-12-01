@@ -16,10 +16,10 @@ const corsProxies = [
 let currentProxyIndex = 0;
 
 // Reload Settings
-const reloadInterval = 180000; // 300 seconds in milliseconds
+const reloadInterval = 3600000; // 300 seconds in milliseconds
 
 // Scroll Settings
-const scrollSpeed = 24; // seconds for full scroll animation
+const scrollSpeed = 20; // seconds for full scroll animation
 const scrollDelay = 2; // seconds to wait before restarting scroll
 
 // Row Colors
